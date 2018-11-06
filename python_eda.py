@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib as plt
 import random
-
+from sklearn.model_selection import train_test_split
 
 class EDA:
     """
@@ -30,7 +30,7 @@ class EDA:
         
 
         
-    def get_exam(self, quant = .99):
+    def examine(self, quant = .99):
         
         """
         Builds dataframe displaying important insights and information regarding
@@ -47,7 +47,7 @@ class EDA:
                                     for x in self.data.columns],
                             '% Missing': ((self.data.isnull().sum()/len(self.data))*100),
             
-                            'Uniq Count': self.data.nunique(),
+                            'Uniq. Count': self.data.nunique(),
             
                             'Upper': [len(self.data[self.data[col] > self.data[col].quantile(quant)]) if col
                                      in self.num_cols
@@ -98,7 +98,7 @@ class EDA:
 
         self._update_attrs()
     
-    def thread(self, column):
+    def dashboard(self, column):
         """
         Method for displaying descriptive statistics, data visualizations, etc. for selected
         column of dataset
@@ -111,10 +111,39 @@ class EDA:
         -Correlations Series
         -Pandas decribe() Series 
         """
+
         self.data[column].hist();
+        print ('Description Series: ', column)
         print (self.data[column].describe())
+        print ('Correlations: ', column)
         return self.data.corr()[column]
     
+    def split(self, target = '', test_size = 0.20, random_state = 42):
+        '''
+        Splits target and features and creates train/test sets
+        
+        INPUTS
+        target column
+        test_size = % of total dataset to be in test set
+        random state
+
+        OUTPUT
+        4 datasets (X_train, X_test, y_train, y_test)
+        '''
+        
+        y = self.data[target]
+        X = self.data.drop(target, axis=1)
+        
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state)
+        
+        return X_train, X_test, y_train, y_test
+    
+    def categorize(self):
+        '''
+        TODO
+        '''
+        
     def _update_attrs(self):
         
         self.num_cols = [x for x in self.data.columns
@@ -123,7 +152,7 @@ class EDA:
         
     def _test_data(self):
         """
-        Creates sample dataframe when filepath is not provided
+        Creates sample dataframe when filepath or dataframe is not provided
         """
         test_df = pd.DataFrame(np.random.randn(50, 3), columns=list('ABC'))
         test_df['D'] = np.random.choice([1, 2, 3], test_df.shape[0])
