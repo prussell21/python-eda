@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import matplotlib as plt
@@ -7,22 +8,25 @@ from sklearn.model_selection import train_test_split
 class EDA:
     """
     Data analysis object built on top of pandas Dataframe objects
-    for exploratory anlysis and data preperation
+    for exploratory analysis and data preparation
     """  
-    def __init__(self, data_input = '', file = False, delimiter = ','):
+    def __init__(self, data_input = None, delimiter = ',', orient= 'records'):
         
         '''
-        Logic for generating either test data, reading in a csv filepath, or loading existing dataframe
+        Logic for generating either test data, reading in a csv or json filepath, or loading existing dataframe
         '''
-        if len(data_input) == 0:
-            self.data = self._test_data()
-
-        else:
-            if file == True:
+        
+        if type(data_input) is str:
+            if data_input[-4:] == '.csv':
                 self.data = pd.read_csv(data_input, delimiter)
             else:
-                self.data = data_input
-
+                self.data = pd.read_json(data_input, orient)
+        
+        if type(data_input) is pd.DataFrame:
+            self.data = data_input
+            
+        else:
+            self.data = self._test_data()
             
         self.num_cols = [x for x in self.data.columns
                         if np.issubdtype(self.data[x].dtype, np.dtype(int).type)
@@ -30,7 +34,7 @@ class EDA:
         
 
         
-    def examine(self, quant = .99):
+    def examine(self, quant = .95):
         
         """
         Builds dataframe displaying important insights and information regarding
@@ -49,18 +53,19 @@ class EDA:
             
                             'Uniq. Count': self.data.nunique(),
             
-                            'Upper': [len(self.data[self.data[col] > self.data[col].quantile(quant)]) if col
+                            'Upper ' + str(quant) + ' Percentile':
+                                     [len(self.data[self.data[col] > self.data[col].quantile(quant)]) if col
                                      in self.num_cols
                                      else None
                                      for col in self.data.columns],
 
-                            'Lower': [len(self.data[self.data[col] < self.data[col].quantile(1-quant)]) if col
+                            'Lower ' + str(quant) + ' Percentile':
+                                     [len(self.data[self.data[col] < self.data[col].quantile(1-quant)]) if col
                                      in self.num_cols
                                      else None
                                      for col in self.data.columns],
                             }).sort_values('Type')
 
-        return self.exam
     
     def impute_missing(self, strategy='median'):
         """
@@ -139,10 +144,31 @@ class EDA:
         
         return X_train, X_test, y_train, y_test
     
-    def categorize(self):
+    def categorize(self, column, drop_original = False):
         '''
-        TODO
+        Remaps variables in column to numerical values
+        
+        INPUT
+        column: dataset column
+        drop_original: variable to keep original categorical column
+        OUTPUT
+        Dataset with new numerical category column
         '''
+        
+        keys = self.data[column].unique()
+        values = range(len(keys))
+        map_dict = dict(zip(keys,list(values)))
+        
+        self.data[column + '_categories'] = [map_dict[item] for item in self.data[column]] 
+        
+        if drop_original == True:
+            self.data.drop(column, axis=1, inplace=True)
+        
+    def normalize(self):
+        '''
+        Normalizes dataset using the MinMax method'''
+        self.data = (self.data - self.data.min()) / (self.data.max() - self.data.min())
+            
         
     def _update_attrs(self):
         
@@ -159,3 +185,4 @@ class EDA:
         test_df['E'] = np.where((test_df['B']< 0), np.nan, np.random.choice([1, 2, 3], test_df.shape[0]))
         self.data = test_df
         return self.data;
+
